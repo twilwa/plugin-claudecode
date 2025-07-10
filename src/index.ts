@@ -14,23 +14,35 @@ import {
   logger,
 } from '@elizaos/core';
 import { z } from 'zod';
+import { ClaudeCodeService } from './services/claude-code';
+import { codeAnalysisAction } from './actions/code-analysis';
+import { createFileAction } from './actions/create-file';
+import { modifyFileAction } from './actions/modify-file';
+import { projectInitAction } from './actions/project-init';
+import { contextProvider } from './providers/context-provider';
 
 /**
- * Defines the configuration schema for a plugin, including the validation rules for the plugin name.
- *
- * @type {import('zod').ZodObject<{ EXAMPLE_PLUGIN_VARIABLE: import('zod').ZodString }>}
+ * Defines the configuration schema for the Claude Code plugin
  */
 const configSchema = z.object({
-  EXAMPLE_PLUGIN_VARIABLE: z
+  ANTHROPIC_API_KEY: z
     .string()
-    .min(1, 'Example plugin variable is not provided')
-    .optional()
+    .min(1, 'Anthropic API key is required for Claude Code SDK')
     .transform((val) => {
       if (!val) {
-        logger.warn('Example plugin variable is not provided (this is expected)');
+        throw new Error('ANTHROPIC_API_KEY is required for Claude Code plugin');
       }
       return val;
     }),
+  MAX_TURNS: z
+    .number()
+    .optional()
+    .default(10)
+    .transform((val) => Math.max(1, Math.min(val, 50))), // Clamp between 1 and 50
+  PERMISSION_MODE: z
+    .enum(['default', 'acceptEdits', 'bypassPermissions', 'plan'])
+    .optional()
+    .default('acceptEdits'),
 });
 
 /**
@@ -154,98 +166,153 @@ export class StarterService extends Service {
   }
 }
 
-export const starterPlugin: Plugin = {
+/**
+ * Claude Code ElizaOS Plugin
+ * 
+ * This plugin integrates Claude Code SDK capabilities into ElizaOS agents,
+ * enabling autonomous code analysis, modification, and project management.
+ */
+export const claudeCodePlugin: Plugin = {
   name: 'plugin-claudecode',
-  description: 'Plugin starter for elizaOS',
+  description: 'ElizaOS plugin for autonomous codebase modification using Claude Code SDK',
   config: {
-    EXAMPLE_PLUGIN_VARIABLE: process.env.EXAMPLE_PLUGIN_VARIABLE,
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+    MAX_TURNS: process.env.MAX_TURNS ? parseInt(process.env.MAX_TURNS) : 10,
+    PERMISSION_MODE: process.env.PERMISSION_MODE || 'acceptEdits',
   },
-  async init(config: Record<string, string>) {
-    logger.info('*** TESTING DEV MODE - PLUGIN MODIFIED AND RELOADED! ***');
+
+  async init(config: Record<string, any>) {
+    logger.info('Initializing Claude Code plugin...');
+    
     try {
       const validatedConfig = await configSchema.parseAsync(config);
 
-      // Set all environment variables at once
-      for (const [key, value] of Object.entries(validatedConfig)) {
-        if (value) process.env[key] = value;
+      // Validate Claude Code SDK availability
+      try {
+        const { query } = await import('@anthropic-ai/claude-code');
+        logger.info('Claude Code SDK successfully imported');
+      } catch (error) {
+        throw new Error('Failed to import Claude Code SDK. Ensure @anthropic-ai/claude-code is installed.');
       }
+
+      // Set environment variables for Claude Code SDK
+      process.env.ANTHROPIC_API_KEY = validatedConfig.ANTHROPIC_API_KEY;
+      
+      // Store config for use by services and actions
+      this.config = validatedConfig;
+      
+      logger.info('Claude Code plugin initialized successfully', {
+        maxTurns: validatedConfig.MAX_TURNS,
+        permissionMode: validatedConfig.PERMISSION_MODE,
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         throw new Error(
-          `Invalid plugin configuration: ${error.errors.map((e) => e.message).join(', ')}`
+          `Invalid Claude Code plugin configuration: ${error.errors.map((e) => e.message).join(', ')}`
         );
       }
       throw error;
     }
   },
-  models: {
-    [ModelType.TEXT_SMALL]: async (
-      _runtime,
-      { prompt, stopSequences = [] }: GenerateTextParams
-    ) => {
-      return 'Never gonna give you up, never gonna let you down, never gonna run around and desert you...';
-    },
-    [ModelType.TEXT_LARGE]: async (
-      _runtime,
-      {
-        prompt,
-        stopSequences = [],
-        maxTokens = 8192,
-        temperature = 0.7,
-        frequencyPenalty = 0.7,
-        presencePenalty = 0.7,
-      }: GenerateTextParams
-    ) => {
-      return 'Never gonna make you cry, never gonna say goodbye, never gonna tell a lie and hurt you...';
-    },
-  },
+
+  // Services that manage Claude Code sessions
+  services: [ClaudeCodeService],
+
+  // Actions for code operations
+  actions: [
+    codeAnalysisAction,
+    createFileAction,
+    modifyFileAction,
+    projectInitAction,
+  ],
+
+  // Providers for context and memory
+  providers: [contextProvider],
+
+  // API routes for external integration
   routes: [
     {
-      name: 'hello-world-route',
-      path: '/helloworld',
+      name: 'claude-code-status',
+      path: '/claude-code/status',
       type: 'GET',
-      handler: async (_req: any, res: any) => {
-        // send a response
-        res.json({
-          message: 'Hello World!',
-        });
+      handler: async (req: any, res: any) => {
+        try {
+          const runtime = req.runtime as IAgentRuntime;
+          const service = runtime.getService(ClaudeCodeService.serviceType) as ClaudeCodeService;
+          
+          if (!service) {
+            return res.status(503).json({
+              status: 'error',
+              message: 'Claude Code service not available',
+            });
+          }
+
+          const status = await service.getStatus();
+          res.json({
+            status: 'active',
+            ...status,
+          });
+        } catch (error) {
+          logger.error('Error getting Claude Code status:', error);
+          res.status(500).json({
+            status: 'error',
+            message: 'Failed to get service status',
+          });
+        }
+      },
+    },
+    {
+      name: 'claude-code-execute',
+      path: '/claude-code/execute',
+      type: 'POST',
+      handler: async (req: any, res: any) => {
+        try {
+          const runtime = req.runtime as IAgentRuntime;
+          const service = runtime.getService(ClaudeCodeService.serviceType) as ClaudeCodeService;
+          
+          if (!service) {
+            return res.status(503).json({
+              status: 'error',
+              message: 'Claude Code service not available',
+            });
+          }
+
+          const { prompt, options } = req.body;
+          
+          if (!prompt) {
+            return res.status(400).json({
+              status: 'error',
+              message: 'Prompt is required',
+            });
+          }
+
+          const result = await service.executeQuery(prompt, options || {});
+          res.json({
+            status: 'success',
+            result,
+          });
+        } catch (error) {
+          logger.error('Error executing Claude Code query:', error);
+          res.status(500).json({
+            status: 'error',
+            message: 'Failed to execute query',
+          });
+        }
       },
     },
   ],
+
+  // Event handlers for plugin lifecycle
   events: {
     MESSAGE_RECEIVED: [
       async (params) => {
-        logger.debug('MESSAGE_RECEIVED event received');
-        // print the keys
-        logger.debug(Object.keys(params));
-      },
-    ],
-    VOICE_MESSAGE_RECEIVED: [
-      async (params) => {
-        logger.debug('VOICE_MESSAGE_RECEIVED event received');
-        // print the keys
-        logger.debug(Object.keys(params));
-      },
-    ],
-    WORLD_CONNECTED: [
-      async (params) => {
-        logger.debug('WORLD_CONNECTED event received');
-        // print the keys
-        logger.debug(Object.keys(params));
-      },
-    ],
-    WORLD_JOINED: [
-      async (params) => {
-        logger.debug('WORLD_JOINED event received');
-        // print the keys
-        logger.debug(Object.keys(params));
+        logger.debug('Claude Code plugin: MESSAGE_RECEIVED event', {
+          userId: params.userId,
+          roomId: params.roomId,
+        });
       },
     ],
   },
-  services: [StarterService],
-  actions: [helloWorldAction],
-  providers: [helloWorldProvider],
-  // dependencies: ['@elizaos/plugin-knowledge'], <--- plugin dependecies go here (if requires another plugin)
 };
 
-export default starterPlugin;
+export default claudeCodePlugin;
