@@ -1,0 +1,414 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Set up plugin structure and boilerplate",
+        "description": "Initialize the plugin project with the required folder structure, configuration files, and dependencies following ElizaOS plugin standards.",
+        "details": "1. Create a new directory for the plugin\n2. Initialize package.json/pyproject.toml with required dependencies:\n   - ElizaOS core framework (latest version)\n   - Claude Code SDK (TypeScript and/or Python)\n   - Node.js 18+ or Python 3.10+\n   - Git libraries\n3. Set up the basic folder structure:\n   - src/ (source code)\n   - tests/ (unit and integration tests)\n   - docs/ (documentation)\n   - examples/ (example implementations)\n4. Create configuration files (.gitignore, tsconfig.json/pyproject.toml, etc.)\n5. Set up a basic README.md with project overview\n6. Implement a basic plugin entry point that follows ElizaOS plugin architecture",
+        "testStrategy": "1. Verify that the project structure follows ElizaOS plugin standards\n2. Ensure all dependencies can be installed without conflicts\n3. Confirm the plugin can be loaded by ElizaOS without errors\n4. Run basic linting and type checking",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Implement Claude Code SDK integration",
+        "description": "Create a service layer that integrates with the Claude Code SDK, providing a foundation for code analysis and modification capabilities.",
+        "details": "1. Create a service class that wraps the Claude Code SDK\n2. Implement authentication and connection handling\n3. Create methods for basic SDK operations:\n   - Initialize a code session\n   - Load files into the session\n   - Execute basic code analysis\n   - Apply code modifications\n   - Save and persist changes\n4. Implement error handling for API failures\n5. Add logging for debugging purposes\n6. Create a configuration system for SDK settings\n\nExample service class structure:\n```typescript\nclass ClaudeCodeService {\n  private sdk: ClaudeCodeSDK;\n  private session: CodeSession | null = null;\n  \n  constructor(config: ClaudeCodeConfig) {\n    this.sdk = new ClaudeCodeSDK(config);\n  }\n  \n  async initSession(projectPath: string): Promise<CodeSession> {\n    this.session = await this.sdk.createSession(projectPath);\n    return this.session;\n  }\n  \n  async analyzeCode(query: string): Promise<AnalysisResult> {\n    if (!this.session) throw new Error('Session not initialized');\n    return this.session.analyze(query);\n  }\n  \n  async modifyCode(instructions: string): Promise<ModificationResult> {\n    if (!this.session) throw new Error('Session not initialized');\n    return this.session.modify(instructions);\n  }\n}\n```",
+        "testStrategy": "1. Create mock implementations of the Claude Code SDK for testing\n2. Write unit tests for each service method\n3. Test error handling with simulated API failures\n4. Create integration tests with a sample codebase\n5. Verify authentication and session management",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create ClaudeCodeService class with authentication",
+            "description": "Implement the base ClaudeCodeService class with authentication and connection handling to the Claude Code SDK.",
+            "dependencies": [],
+            "details": "1. Create a new file `src/services/ClaudeCodeService.ts`\n2. Implement the class with constructor that accepts configuration\n3. Add authentication methods using API keys\n4. Implement connection handling with retry logic\n5. Create a configuration interface for SDK settings\n6. Add basic error handling for connection issues",
+            "status": "pending",
+            "testStrategy": "Write unit tests that mock the SDK responses to verify authentication flow and connection handling."
+          },
+          {
+            "id": 2,
+            "title": "Implement code session management",
+            "description": "Add methods to initialize, manage and close code sessions with the Claude Code SDK.",
+            "dependencies": [
+              1
+            ],
+            "details": "1. Implement `initSession` method to create a new code session\n2. Add methods to load files into the session\n3. Create functionality to track active sessions\n4. Implement session cleanup and resource management\n5. Add session state validation to prevent operations on invalid sessions\n6. Create helper methods for session management",
+            "status": "pending",
+            "testStrategy": "Test session lifecycle with mocked SDK responses, ensuring proper initialization and cleanup."
+          },
+          {
+            "id": 3,
+            "title": "Implement code analysis capabilities",
+            "description": "Create methods that leverage the Claude Code SDK for analyzing code and returning structured results.",
+            "dependencies": [
+              2
+            ],
+            "details": "1. Implement `analyzeCode` method that accepts query parameters\n2. Create response parsers for different types of analysis results\n3. Add support for different analysis modes (security, performance, etc.)\n4. Implement result caching for performance optimization\n5. Create utility functions for common analysis patterns\n6. Add proper error handling for analysis failures",
+            "status": "pending",
+            "testStrategy": "Test with sample code snippets and verify correct parsing of analysis results from the SDK."
+          },
+          {
+            "id": 4,
+            "title": "Implement code modification capabilities",
+            "description": "Add functionality to apply code modifications based on instructions and handle the resulting changes.",
+            "dependencies": [
+              3
+            ],
+            "details": "1. Implement `modifyCode` method that accepts modification instructions\n2. Create handlers for different types of modifications\n3. Implement validation of proposed changes\n4. Add methods to save and persist changes to the filesystem\n5. Create conflict resolution strategies\n6. Implement rollback capabilities for failed modifications",
+            "status": "pending",
+            "testStrategy": "Test modification workflows with sample code, verifying changes are applied correctly and can be persisted or rolled back."
+          },
+          {
+            "id": 5,
+            "title": "Add logging, error handling and integration tests",
+            "description": "Enhance the service with comprehensive logging, error handling, and create integration tests for the entire service.",
+            "dependencies": [
+              4
+            ],
+            "details": "1. Implement detailed logging throughout the service\n2. Create custom error classes for different failure scenarios\n3. Add telemetry for monitoring service performance\n4. Implement graceful degradation for partial API failures\n5. Create comprehensive integration tests covering the full service functionality\n6. Document the service API and usage patterns",
+            "status": "pending",
+            "testStrategy": "Create end-to-end tests that use the actual SDK (with test credentials) to verify the complete integration works as expected."
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Develop action system architecture",
+        "description": "Design and implement a modular action system that allows for extensible code operations following ElizaOS standards.",
+        "details": "1. Design an action interface that all code operations will implement\n2. Create a registry system for registering and discovering actions\n3. Implement action execution pipeline with pre/post hooks\n4. Add support for action dependencies and sequencing\n5. Implement context passing between actions\n6. Add validation for action inputs and outputs\n\nExample action interface:\n```typescript\ninterface CodeAction {\n  id: string;\n  name: string;\n  description: string;\n  execute(context: ActionContext, input: any): Promise<ActionResult>;\n  validate(input: any): boolean;\n}\n\nclass ActionRegistry {\n  private actions: Map<string, CodeAction> = new Map();\n  \n  register(action: CodeAction): void {\n    this.actions.set(action.id, action);\n  }\n  \n  getAction(id: string): CodeAction | undefined {\n    return this.actions.get(id);\n  }\n  \n  async executeAction(id: string, context: ActionContext, input: any): Promise<ActionResult> {\n    const action = this.getAction(id);\n    if (!action) throw new Error(`Action ${id} not found`);\n    if (!action.validate(input)) throw new Error(`Invalid input for action ${id}`);\n    \n    // Execute pre-hooks\n    const result = await action.execute(context, input);\n    // Execute post-hooks\n    \n    return result;\n  }\n}\n```",
+        "testStrategy": "1. Write unit tests for the action registry\n2. Create mock actions to test registration and execution\n3. Test action validation with valid and invalid inputs\n4. Verify action dependencies and sequencing\n5. Test context passing between actions",
+        "priority": "high",
+        "dependencies": [
+          1,
+          2
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define Action Interface and Base Classes",
+            "description": "Create the core interfaces and base classes for the action system that all code operations will implement.",
+            "dependencies": [],
+            "details": "1. Define the `CodeAction` interface with required methods and properties (id, name, description, execute, validate)\n2. Create an `ActionContext` interface to define the context object passed between actions\n3. Define the `ActionResult` interface for standardized action outputs\n4. Implement a base `AbstractCodeAction` class that provides common functionality\n5. Document the extension points and required implementations for concrete actions",
+            "status": "pending",
+            "testStrategy": "Create unit tests for the base classes with mock implementations to verify the interface contracts work as expected."
+          },
+          {
+            "id": 2,
+            "title": "Implement Action Registry System",
+            "description": "Build a registry system for registering, discovering, and managing code actions.",
+            "dependencies": [],
+            "details": "1. Implement the `ActionRegistry` class with methods to register and retrieve actions\n2. Add support for action categorization and filtering\n3. Implement action discovery mechanisms (e.g., auto-registration of actions from specific directories)\n4. Add methods to list available actions with their metadata\n5. Include validation to prevent duplicate action IDs and ensure all registered actions meet interface requirements",
+            "status": "pending",
+            "testStrategy": "Test registration, retrieval, and listing of mock actions. Verify error handling for duplicate registrations and invalid actions."
+          },
+          {
+            "id": 3,
+            "title": "Create Action Execution Pipeline",
+            "description": "Develop the execution pipeline with pre/post hooks and proper error handling.",
+            "dependencies": [],
+            "details": "1. Implement the core `executeAction` method in the registry\n2. Add support for pre-execution hooks that can modify inputs or cancel execution\n3. Implement post-execution hooks for result processing or logging\n4. Create a robust error handling system that preserves the execution chain\n5. Add execution logging and performance metrics collection\n6. Implement timeout and cancellation support",
+            "status": "pending",
+            "testStrategy": "Test the full execution pipeline with mock actions and hooks. Verify hooks are called in the correct order and error handling works properly."
+          },
+          {
+            "id": 4,
+            "title": "Implement Action Dependencies and Sequencing",
+            "description": "Add support for defining and resolving dependencies between actions and executing them in sequence.",
+            "dependencies": [],
+            "details": "1. Extend the `CodeAction` interface to support declaring dependencies on other actions\n2. Implement a dependency resolver that can build an execution graph\n3. Create an action sequencer that can execute a chain of dependent actions\n4. Add support for parallel execution of independent actions\n5. Implement rollback capabilities for failed action sequences\n6. Add visualization tools for action dependency graphs",
+            "status": "pending",
+            "testStrategy": "Create test cases with complex dependency chains. Verify correct execution order and proper handling of failures in the middle of a sequence."
+          },
+          {
+            "id": 5,
+            "title": "Integrate with Claude Code SDK",
+            "description": "Connect the action system with Claude Code SDK to enable file operations and code modifications.",
+            "dependencies": [],
+            "details": "1. Create adapter classes that bridge between the action system and Claude Code SDK\n2. Implement common file operation actions (create, read, update, delete)\n3. Add specialized code modification actions (insert code, refactor, format)\n4. Implement context passing between the action system and Claude Code SDK\n5. Add validation specific to file operations\n6. Create helper utilities for common code transformation patterns",
+            "status": "pending",
+            "testStrategy": "Test file operations with mock filesystem. Verify code modifications produce expected outputs and handle edge cases properly."
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Implement file creation and modification actions",
+        "description": "Create actions for basic file operations including creating new files and modifying existing ones using the Claude Code SDK.",
+        "details": "1. Implement a CreateFileAction that generates new files based on specifications\n2. Implement a ModifyFileAction that edits existing files\n3. Add support for template-based file creation\n4. Implement file path resolution and validation\n5. Add error handling for file system operations\n6. Support for different file types and languages\n\nExample implementation:\n```typescript\nclass CreateFileAction implements CodeAction {\n  id = 'create-file';\n  name = 'Create File';\n  description = 'Creates a new file with the specified content';\n  \n  async execute(context: ActionContext, input: CreateFileInput): Promise<ActionResult> {\n    const { path, content, overwrite = false } = input;\n    const session = context.getSession();\n    \n    // Check if file exists\n    const fileExists = await session.fileExists(path);\n    if (fileExists && !overwrite) {\n      throw new Error(`File ${path} already exists and overwrite is not enabled`);\n    }\n    \n    // Create the file\n    await session.createFile(path, content);\n    \n    return {\n      success: true,\n      data: { path }\n    };\n  }\n  \n  validate(input: any): boolean {\n    return (\n      typeof input.path === 'string' &&\n      typeof input.content === 'string'\n    );\n  }\n}\n```",
+        "testStrategy": "1. Test file creation with various file types\n2. Test file modification with different types of changes\n3. Verify error handling for invalid paths and permissions\n4. Test overwrite protection and confirmation\n5. Verify template-based file creation with different parameters",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Implement error handling and logging system",
+        "description": "Create a comprehensive error handling and logging system for the plugin to ensure robustness and debuggability.",
+        "details": "1. Design error hierarchy specific to the plugin\n2. Implement centralized error handling\n3. Create a logging service with different log levels\n4. Add context information to error messages\n5. Implement error recovery strategies\n6. Add telemetry for error tracking (optional)\n\nExample implementation:\n```typescript\nclass PluginError extends Error {\n  code: string;\n  context: Record<string, any>;\n  \n  constructor(message: string, code: string, context: Record<string, any> = {}) {\n    super(message);\n    this.name = 'PluginError';\n    this.code = code;\n    this.context = context;\n  }\n}\n\nclass Logger {\n  private context: string;\n  \n  constructor(context: string) {\n    this.context = context;\n  }\n  \n  info(message: string, data?: any): void {\n    console.log(`[INFO][${this.context}] ${message}`, data || '');\n  }\n  \n  error(error: Error | string, data?: any): void {\n    if (error instanceof PluginError) {\n      console.error(`[ERROR][${this.context}][${error.code}] ${error.message}`, {\n        ...error.context,\n        ...data\n      });\n    } else {\n      console.error(`[ERROR][${this.context}] ${error instanceof Error ? error.message : error}`, data || '');\n    }\n  }\n}\n```",
+        "testStrategy": "1. Test error handling with various error scenarios\n2. Verify that errors are properly logged with context\n3. Test error recovery mechanisms\n4. Verify that errors are properly propagated to the user\n5. Test logging levels and filtering",
+        "priority": "medium",
+        "dependencies": [
+          1,
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Implement code analysis actions",
+        "description": "Create actions for analyzing code structure, dependencies, code smells, and potential improvements using the Claude Code SDK.",
+        "details": "1. Implement CodeStructureAnalysisAction to analyze project structure\n2. Create DependencyAnalysisAction to identify dependencies\n3. Implement CodeSmellDetectionAction to find code smells\n4. Create SecurityVulnerabilityAction to scan for security issues\n5. Implement ComplexityAnalysisAction to measure code complexity\n6. Create DocumentationGenerationAction to generate code documentation\n\nExample implementation:\n```typescript\nclass CodeSmellDetectionAction implements CodeAction {\n  id = 'detect-code-smells';\n  name = 'Detect Code Smells';\n  description = 'Analyzes code to detect potential code smells and anti-patterns';\n  \n  async execute(context: ActionContext, input: CodeSmellInput): Promise<ActionResult> {\n    const { paths, rules = 'default' } = input;\n    const session = context.getSession();\n    \n    // Prepare the analysis prompt\n    const prompt = `Analyze the following code files for code smells and anti-patterns:\n${paths.join('\\n')}\n\nUse the following rule set: ${rules}`;\n    \n    // Execute the analysis\n    const analysis = await session.analyzeCode(prompt);\n    \n    // Process and structure the results\n    const structuredResults = this.processResults(analysis, paths);\n    \n    return {\n      success: true,\n      data: structuredResults\n    };\n  }\n  \n  private processResults(analysis: any, paths: string[]): CodeSmellResult {\n    // Process and structure the raw analysis results\n    // ...\n    return {\n      smells: [],\n      suggestions: []\n    };\n  }\n  \n  validate(input: any): boolean {\n    return Array.isArray(input.paths) && input.paths.length > 0;\n  }\n}\n```",
+        "testStrategy": "1. Test each analysis action with sample codebases\n2. Verify detection of known code smells and issues\n3. Test with different file types and languages\n4. Benchmark performance with large codebases\n5. Verify accuracy of analysis results against known issues",
+        "priority": "medium",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Implement context management and memory",
+        "description": "Create a system for maintaining context and memory across code operations to enable more intelligent and contextually aware modifications.",
+        "details": "1. Design a context store for maintaining project state\n2. Implement memory persistence for project structure\n3. Create a system for tracking coding patterns and conventions\n4. Implement context-aware suggestion generation\n5. Add support for learning from previous modifications\n\nExample implementation:\n```typescript\ninterface ProjectContext {\n  structure: ProjectStructure;\n  conventions: CodingConventions;\n  history: ModificationHistory;\n  preferences: UserPreferences;\n}\n\nclass ContextManager {\n  private context: ProjectContext;\n  private storage: StorageService;\n  \n  constructor(storage: StorageService) {\n    this.storage = storage;\n    this.context = this.initializeContext();\n  }\n  \n  private initializeContext(): ProjectContext {\n    // Load context from storage or initialize new\n    const savedContext = this.storage.load('project-context');\n    if (savedContext) return savedContext;\n    \n    return {\n      structure: { files: [], directories: [] },\n      conventions: { naming: {}, formatting: {}, patterns: [] },\n      history: { modifications: [] },\n      preferences: {}\n    };\n  }\n  \n  updateStructure(structure: ProjectStructure): void {\n    this.context.structure = structure;\n    this.persist();\n  }\n  \n  learnConvention(convention: CodingConvention): void {\n    this.context.conventions.patterns.push(convention);\n    this.persist();\n  }\n  \n  recordModification(modification: Modification): void {\n    this.context.history.modifications.push(modification);\n    this.persist();\n  }\n  \n  private persist(): void {\n    this.storage.save('project-context', this.context);\n  }\n}\n```",
+        "testStrategy": "1. Test context persistence across sessions\n2. Verify learning of coding conventions from sample code\n3. Test context-aware suggestions with different project types\n4. Benchmark memory usage with large project contexts\n5. Verify context updates after code modifications",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3,
+          4
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Implement multi-file operation support",
+        "description": "Enhance the plugin to support operations that span multiple files, maintaining consistency and handling dependencies between files.",
+        "details": "1. Create a transaction-like system for multi-file operations\n2. Implement rollback capabilities for failed operations\n3. Add dependency analysis between files\n4. Create a system for coordinating changes across multiple files\n5. Implement validation for multi-file consistency\n\nExample implementation:\n```typescript\nclass MultiFileOperation {\n  private files: Map<string, FileOperation> = new Map();\n  private executed: boolean = false;\n  \n  addFileOperation(path: string, operation: FileOperation): void {\n    this.files.set(path, operation);\n  }\n  \n  async execute(session: CodeSession): Promise<MultiFileResult> {\n    if (this.executed) throw new Error('Operation already executed');\n    \n    const results: Map<string, OperationResult> = new Map();\n    const executedPaths: string[] = [];\n    \n    try {\n      // Execute all operations\n      for (const [path, operation] of this.files.entries()) {\n        const result = await operation.execute(session);\n        results.set(path, result);\n        executedPaths.push(path);\n      }\n      \n      this.executed = true;\n      return { success: true, results };\n    } catch (error) {\n      // Rollback executed operations\n      for (const path of executedPaths) {\n        const operation = this.files.get(path)!;\n        await operation.rollback(session);\n      }\n      \n      throw error;\n    }\n  }\n  \n  async validate(session: CodeSession): Promise<ValidationResult> {\n    // Validate all operations before execution\n    const validationResults: Map<string, boolean> = new Map();\n    \n    for (const [path, operation] of this.files.entries()) {\n      const isValid = await operation.validate(session);\n      validationResults.set(path, isValid);\n      \n      if (!isValid) {\n        return { valid: false, results: validationResults };\n      }\n    }\n    \n    return { valid: true, results: validationResults };\n  }\n}\n```",
+        "testStrategy": "1. Test multi-file operations with interdependent files\n2. Verify rollback functionality when operations fail\n3. Test validation of multi-file consistency\n4. Verify handling of circular dependencies\n5. Test performance with large numbers of files",
+        "priority": "medium",
+        "dependencies": [
+          4,
+          7
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Implement project initialization actions",
+        "description": "Create actions for initializing new projects with boilerplate code, following best practices and common patterns.",
+        "details": "1. Implement ProjectInitAction for creating new projects\n2. Create template system for different project types\n3. Add support for custom templates\n4. Implement configuration generation for common tools\n5. Add dependency management for initial setup\n\nExample implementation:\n```typescript\nclass ProjectInitAction implements CodeAction {\n  id = 'init-project';\n  name = 'Initialize Project';\n  description = 'Creates a new project with boilerplate code and configuration';\n  \n  async execute(context: ActionContext, input: ProjectInitInput): Promise<ActionResult> {\n    const { name, type, path, options = {} } = input;\n    const session = context.getSession();\n    \n    // Get the appropriate template\n    const template = await this.getTemplate(type, options);\n    \n    // Create project directory structure\n    await session.createDirectory(path);\n    \n    // Process template files\n    const fileOperations = this.processTemplate(template, {\n      projectName: name,\n      ...options\n    });\n    \n    // Execute file operations\n    const multiFileOp = new MultiFileOperation();\n    for (const [filePath, content] of fileOperations) {\n      multiFileOp.addFileOperation(filePath, new CreateFileOperation(content));\n    }\n    \n    await multiFileOp.execute(session);\n    \n    // Initialize git repository if needed\n    if (options.initGit) {\n      await session.executeCommand('git init', { cwd: path });\n    }\n    \n    return {\n      success: true,\n      data: { path, files: Array.from(fileOperations.keys()) }\n    };\n  }\n  \n  private async getTemplate(type: string, options: any): Promise<ProjectTemplate> {\n    // Load template based on project type\n    // ...\n  }\n  \n  private processTemplate(template: ProjectTemplate, variables: Record<string, any>): Map<string, string> {\n    // Process template files with variables\n    // ...\n  }\n  \n  validate(input: any): boolean {\n    return (\n      typeof input.name === 'string' &&\n      typeof input.type === 'string' &&\n      typeof input.path === 'string'\n    );\n  }\n}\n```",
+        "testStrategy": "1. Test project initialization with different template types\n2. Verify generated files match expected templates\n3. Test variable substitution in templates\n4. Verify git initialization when requested\n5. Test with custom templates",
+        "priority": "medium",
+        "dependencies": [
+          4,
+          7
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Implement code refactoring actions",
+        "description": "Create actions for refactoring code following best practices, improving code quality and maintainability.",
+        "details": "1. Implement RefactorCodeAction for general code improvements\n2. Create specialized refactoring actions for common patterns:\n   - ExtractMethodAction\n   - RenameSymbolAction\n   - OptimizeImportsAction\n   - ConvertToTypeScriptAction\n3. Add support for custom refactoring rules\n4. Implement before/after comparison\n\nExample implementation:\n```typescript\nclass RefactorCodeAction implements CodeAction {\n  id = 'refactor-code';\n  name = 'Refactor Code';\n  description = 'Refactors code to improve quality and maintainability';\n  \n  async execute(context: ActionContext, input: RefactorInput): Promise<ActionResult> {\n    const { path, type = 'general', options = {} } = input;\n    const session = context.getSession();\n    \n    // Get the current code\n    const originalCode = await session.readFile(path);\n    \n    // Prepare the refactoring prompt\n    let prompt = `Refactor the following code to improve its quality and maintainability:`;\n    \n    if (type !== 'general') {\n      prompt += `\\nSpecifically, perform a ${type} refactoring.`;\n    }\n    \n    if (options.rules) {\n      prompt += `\\nFollow these specific rules:\\n${options.rules.join('\\n')}`;\n    }\n    \n    // Execute the refactoring\n    const refactoredCode = await session.modifyCode(path, prompt);\n    \n    // Apply the changes\n    await session.writeFile(path, refactoredCode);\n    \n    // Generate a diff for review\n    const diff = this.generateDiff(originalCode, refactoredCode);\n    \n    return {\n      success: true,\n      data: {\n        path,\n        diff,\n        type\n      }\n    };\n  }\n  \n  private generateDiff(original: string, modified: string): string {\n    // Generate a diff between original and modified code\n    // ...\n  }\n  \n  validate(input: any): boolean {\n    return typeof input.path === 'string';\n  }\n}\n```",
+        "testStrategy": "1. Test refactoring with different code samples\n2. Verify improvements in code quality metrics\n3. Test specialized refactoring actions\n4. Verify diff generation for code changes\n5. Test with custom refactoring rules",
+        "priority": "medium",
+        "dependencies": [
+          4,
+          6,
+          7
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 11,
+        "title": "Implement bug fixing actions",
+        "description": "Create actions for automatically fixing bugs based on error messages or descriptions, leveraging the Claude Code SDK.",
+        "details": "1. Implement FixBugAction for general bug fixing\n2. Create specialized bug fixing actions for common error types:\n   - SyntaxErrorFixer\n   - TypeErrorFixer\n   - RuntimeErrorFixer\n3. Add support for test-driven bug fixing\n4. Implement error message parsing and analysis\n\nExample implementation:\n```typescript\nclass FixBugAction implements CodeAction {\n  id = 'fix-bug';\n  name = 'Fix Bug';\n  description = 'Fixes bugs based on error messages or descriptions';\n  \n  async execute(context: ActionContext, input: FixBugInput): Promise<ActionResult> {\n    const { errorMessage, files, description } = input;\n    const session = context.getSession();\n    \n    // Analyze the error message if provided\n    let errorAnalysis = {};\n    if (errorMessage) {\n      errorAnalysis = this.analyzeErrorMessage(errorMessage);\n    }\n    \n    // Prepare the bug fixing prompt\n    let prompt = 'Fix the following bug in the code:';\n    \n    if (errorMessage) {\n      prompt += `\\nError message: ${errorMessage}`;\n    }\n    \n    if (description) {\n      prompt += `\\nBug description: ${description}`;\n    }\n    \n    // Load the relevant files\n    const fileContents = new Map<string, string>();\n    for (const file of files) {\n      const content = await session.readFile(file);\n      fileContents.set(file, content);\n      prompt += `\\n\\nFile: ${file}\\n\\`\\`\\`\\n${content}\\n\\`\\`\\`\\n`;\n    }\n    \n    // Execute the bug fixing\n    const fixes = await session.generateCodeFixes(prompt);\n    \n    // Apply the fixes\n    const results = new Map<string, string>();\n    for (const [file, fix] of fixes.entries()) {\n      await session.writeFile(file, fix);\n      results.set(file, fix);\n    }\n    \n    return {\n      success: true,\n      data: {\n        fixedFiles: Array.from(results.keys()),\n        errorAnalysis\n      }\n    };\n  }\n  \n  private analyzeErrorMessage(errorMessage: string): any {\n    // Parse and analyze the error message\n    // ...\n  }\n  \n  validate(input: any): boolean {\n    return (\n      Array.isArray(input.files) &&\n      input.files.length > 0 &&\n      (typeof input.errorMessage === 'string' || typeof input.description === 'string')\n    );\n  }\n}\n```",
+        "testStrategy": "1. Test bug fixing with common error types\n2. Verify fixes resolve the reported issues\n3. Test with real-world bug examples\n4. Verify error message parsing accuracy\n5. Test with test-driven bug fixing approach",
+        "priority": "medium",
+        "dependencies": [
+          4,
+          6,
+          7
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 12,
+        "title": "Implement feature implementation actions",
+        "description": "Create actions for implementing new features based on specifications, leveraging the Claude Code SDK.",
+        "details": "1. Implement FeatureImplementationAction for adding new features\n2. Create support for specification-based implementation\n3. Add test generation for new features\n4. Implement documentation generation for features\n\nExample implementation:\n```typescript\nclass ImplementFeatureAction implements CodeAction {\n  id = 'implement-feature';\n  name = 'Implement Feature';\n  description = 'Implements a new feature based on specifications';\n  \n  async execute(context: ActionContext, input: ImplementFeatureInput): Promise<ActionResult> {\n    const { specification, projectPath, generateTests = true } = input;\n    const session = context.getSession();\n    \n    // Analyze project structure to understand context\n    const projectStructure = await session.analyzeProjectStructure(projectPath);\n    \n    // Prepare the implementation prompt\n    const prompt = `Implement the following feature in the project:\\n\\n${specification}\\n\\nProject structure:\\n${JSON.stringify(projectStructure, null, 2)}`;\n    \n    // Generate implementation plan\n    const implementationPlan = await session.generateImplementationPlan(prompt);\n    \n    // Execute the implementation plan\n    const fileChanges = new Map<string, string>();\n    for (const step of implementationPlan.steps) {\n      if (step.type === 'create_file') {\n        await session.createFile(step.path, step.content);\n        fileChanges.set(step.path, step.content);\n      } else if (step.type === 'modify_file') {\n        const originalContent = await session.readFile(step.path);\n        await session.writeFile(step.path, step.content);\n        fileChanges.set(step.path, step.content);\n      }\n    }\n    \n    // Generate tests if requested\n    let tests = [];\n    if (generateTests) {\n      tests = await this.generateTests(session, specification, fileChanges);\n    }\n    \n    return {\n      success: true,\n      data: {\n        changedFiles: Array.from(fileChanges.keys()),\n        tests,\n        implementationPlan\n      }\n    };\n  }\n  \n  private async generateTests(session: CodeSession, specification: string, fileChanges: Map<string, string>): Promise<any[]> {\n    // Generate tests for the implemented feature\n    // ...\n  }\n  \n  validate(input: any): boolean {\n    return (\n      typeof input.specification === 'string' &&\n      typeof input.projectPath === 'string'\n    );\n  }\n}\n```",
+        "testStrategy": "1. Test feature implementation with different specifications\n2. Verify generated code meets the requirements\n3. Test with different project structures\n4. Verify test generation for implemented features\n5. Test documentation generation",
+        "priority": "medium",
+        "dependencies": [
+          4,
+          7,
+          8
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 13,
+        "title": "Implement GitHub integration",
+        "description": "Create integration with GitHub for PR creation, review, and issue tracking to enable collaborative development workflows.",
+        "details": "1. Implement GitHubService for API interactions\n2. Create actions for common GitHub operations:\n   - CreatePullRequestAction\n   - ReviewPullRequestAction\n   - CreateIssueAction\n   - CommentOnPRAction\n3. Add authentication handling for GitHub API\n4. Implement webhook support for event-driven operations\n\nExample implementation:\n```typescript\nclass GitHubService {\n  private client: Octokit;\n  \n  constructor(token: string) {\n    this.client = new Octokit({ auth: token });\n  }\n  \n  async createPullRequest(repo: string, options: CreatePROptions): Promise<PullRequest> {\n    const [owner, repoName] = repo.split('/');\n    \n    const response = await this.client.pulls.create({\n      owner,\n      repo: repoName,\n      title: options.title,\n      body: options.body,\n      head: options.head,\n      base: options.base\n    });\n    \n    return response.data;\n  }\n  \n  async reviewPullRequest(repo: string, prNumber: number, review: PRReview): Promise<void> {\n    const [owner, repoName] = repo.split('/');\n    \n    await this.client.pulls.createReview({\n      owner,\n      repo: repoName,\n      pull_number: prNumber,\n      body: review.body,\n      event: review.event,\n      comments: review.comments\n    });\n  }\n}\n\nclass CreatePullRequestAction implements CodeAction {\n  id = 'create-pull-request';\n  name = 'Create Pull Request';\n  description = 'Creates a pull request on GitHub';\n  \n  async execute(context: ActionContext, input: CreatePRInput): Promise<ActionResult> {\n    const { repo, title, body, head, base } = input;\n    const githubService = context.getService<GitHubService>('github');\n    \n    const pullRequest = await githubService.createPullRequest(repo, {\n      title,\n      body,\n      head,\n      base\n    });\n    \n    return {\n      success: true,\n      data: { pullRequest }\n    };\n  }\n  \n  validate(input: any): boolean {\n    return (\n      typeof input.repo === 'string' &&\n      typeof input.title === 'string' &&\n      typeof input.head === 'string' &&\n      typeof input.base === 'string'\n    );\n  }\n}\n```",
+        "testStrategy": "1. Test GitHub API integration with mock responses\n2. Verify authentication handling\n3. Test PR creation and review workflows\n4. Verify issue tracking integration\n5. Test webhook event handling",
+        "priority": "medium",
+        "dependencies": [
+          3,
+          5
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 14,
+        "title": "Implement automated testing actions",
+        "description": "Create actions for generating and running tests for code, ensuring quality and correctness of implementations.",
+        "details": "1. Implement GenerateTestsAction for creating test cases\n2. Create RunTestsAction for executing tests\n3. Implement TestCoverageAction for analyzing test coverage\n4. Add support for different testing frameworks\n5. Implement test result analysis\n\nExample implementation:\n```typescript\nclass GenerateTestsAction implements CodeAction {\n  id = 'generate-tests';\n  name = 'Generate Tests';\n  description = 'Generates test cases for code';\n  \n  async execute(context: ActionContext, input: GenerateTestsInput): Promise<ActionResult> {\n    const { path, framework = 'jest', coverage = 80 } = input;\n    const session = context.getSession();\n    \n    // Read the source file\n    const sourceCode = await session.readFile(path);\n    \n    // Analyze the code to understand what to test\n    const codeAnalysis = await session.analyzeCode(sourceCode, {\n      purpose: 'test-generation'\n    });\n    \n    // Prepare the test generation prompt\n    const prompt = `Generate ${framework} tests for the following code with at least ${coverage}% coverage:\\n\\n\\`\\`\\`\\n${sourceCode}\\n\\`\\`\\`\\n\\nCode analysis:\\n${JSON.stringify(codeAnalysis, null, 2)}`;\n    \n    // Generate the tests\n    const testCode = await session.generateCode(prompt, {\n      language: this.getLanguageForFramework(framework),\n      purpose: 'testing'\n    });\n    \n    // Determine the test file path\n    const testPath = this.getTestFilePath(path, framework);\n    \n    // Write the test file\n    await session.writeFile(testPath, testCode);\n    \n    return {\n      success: true,\n      data: {\n        testPath,\n        coverage: codeAnalysis.coverageEstimate\n      }\n    };\n  }\n  \n  private getLanguageForFramework(framework: string): string {\n    // Map testing framework to language\n    const frameworkToLanguage = {\n      'jest': 'typescript',\n      'mocha': 'javascript',\n      'pytest': 'python',\n      'unittest': 'python'\n    };\n    \n    return frameworkToLanguage[framework] || 'typescript';\n  }\n  \n  private getTestFilePath(sourcePath: string, framework: string): string {\n    // Generate appropriate test file path based on framework conventions\n    // ...\n  }\n  \n  validate(input: any): boolean {\n    return typeof input.path === 'string';\n  }\n}\n```",
+        "testStrategy": "1. Test generation of tests for different code samples\n2. Verify tests can be executed and pass\n3. Test coverage analysis accuracy\n4. Verify support for different testing frameworks\n5. Test with edge cases and complex code",
+        "priority": "medium",
+        "dependencies": [
+          4,
+          6,
+          7
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 15,
+        "title": "Implement dependency management actions",
+        "description": "Create actions for managing project dependencies, including updating, adding, and removing dependencies.",
+        "details": "1. Implement UpdateDependenciesAction for updating project dependencies\n2. Create AddDependencyAction for adding new dependencies\n3. Implement RemoveDependencyAction for removing dependencies\n4. Add support for different package managers (npm, pip, etc.)\n5. Implement dependency analysis and security checking\n\nExample implementation:\n```typescript\nclass UpdateDependenciesAction implements CodeAction {\n  id = 'update-dependencies';\n  name = 'Update Dependencies';\n  description = 'Updates project dependencies to their latest versions';\n  \n  async execute(context: ActionContext, input: UpdateDependenciesInput): Promise<ActionResult> {\n    const { projectPath, packageManager = 'auto', options = {} } = input;\n    const session = context.getSession();\n    \n    // Determine the package manager to use\n    const pm = packageManager === 'auto'\n      ? await this.detectPackageManager(session, projectPath)\n      : packageManager;\n    \n    // Read the current dependency file\n    const dependencyFile = this.getDependencyFile(pm, projectPath);\n    const originalContent = await session.readFile(dependencyFile);\n    \n    // Parse dependencies\n    const dependencies = this.parseDependencies(pm, originalContent);\n    \n    // Check for updates\n    const updates = await this.checkForUpdates(pm, dependencies, options);\n    \n    if (updates.length === 0) {\n      return {\n        success: true,\n        data: { message: 'All dependencies are up to date' }\n      };\n    }\n    \n    // Update the dependency file\n    const updatedContent = this.updateDependencyFile(pm, originalContent, updates);\n    await session.writeFile(dependencyFile, updatedContent);\n    \n    // Run install command if requested\n    if (options.install) {\n      const installCommand = this.getInstallCommand(pm);\n      await session.executeCommand(installCommand, { cwd: projectPath });\n    }\n    \n    return {\n      success: true,\n      data: {\n        updates,\n        dependencyFile\n      }\n    };\n  }\n  \n  private async detectPackageManager(session: CodeSession, projectPath: string): Promise<string> {\n    // Detect which package manager is used in the project\n    // ...\n  }\n  \n  private getDependencyFile(packageManager: string, projectPath: string): string {\n    // Get the appropriate dependency file path\n    const pmToFile = {\n      'npm': 'package.json',\n      'yarn': 'package.json',\n      'pip': 'requirements.txt',\n      'poetry': 'pyproject.toml'\n    };\n    \n    return path.join(projectPath, pmToFile[packageManager] || 'package.json');\n  }\n  \n  private parseDependencies(packageManager: string, content: string): any {\n    // Parse dependencies from the file content\n    // ...\n  }\n  \n  private async checkForUpdates(packageManager: string, dependencies: any, options: any): Promise<any[]> {\n    // Check for available updates\n    // ...\n  }\n  \n  private updateDependencyFile(packageManager: string, content: string, updates: any[]): string {\n    // Update the dependency file with new versions\n    // ...\n  }\n  \n  private getInstallCommand(packageManager: string): string {\n    // Get the appropriate install command\n    const pmToCommand = {\n      'npm': 'npm install',\n      'yarn': 'yarn install',\n      'pip': 'pip install -r requirements.txt',\n      'poetry': 'poetry install'\n    };\n    \n    return pmToCommand[packageManager] || 'npm install';\n  }\n  \n  validate(input: any): boolean {\n    return typeof input.projectPath === 'string';\n  }\n}\n```",
+        "testStrategy": "1. Test dependency updates with different package managers\n2. Verify detection of outdated dependencies\n3. Test security vulnerability detection\n4. Verify handling of dependency conflicts\n5. Test with different project structures",
+        "priority": "medium",
+        "dependencies": [
+          4,
+          7
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 16,
+        "title": "Implement documentation generation actions",
+        "description": "Create actions for generating and updating documentation for code, including API docs, README files, and more.",
+        "details": "1. Implement GenerateDocumentationAction for creating code documentation\n2. Create UpdateReadmeAction for maintaining README files\n3. Implement GenerateAPIDocsAction for API documentation\n4. Add support for different documentation formats (Markdown, JSDoc, etc.)\n5. Implement documentation quality checking\n\nExample implementation:\n```typescript\nclass GenerateDocumentationAction implements CodeAction {\n  id = 'generate-documentation';\n  name = 'Generate Documentation';\n  description = 'Generates documentation for code';\n  \n  async execute(context: ActionContext, input: GenerateDocumentationInput): Promise<ActionResult> {\n    const { paths, format = 'markdown', outputDir } = input;\n    const session = context.getSession();\n    \n    // Create output directory if it doesn't exist\n    if (outputDir && !(await session.directoryExists(outputDir))) {\n      await session.createDirectory(outputDir);\n    }\n    \n    const results = new Map<string, string>();\n    \n    // Process each file\n    for (const path of paths) {\n      // Read the source file\n      const sourceCode = await session.readFile(path);\n      \n      // Analyze the code\n      const codeAnalysis = await session.analyzeCode(sourceCode, {\n        purpose: 'documentation'\n      });\n      \n      // Generate documentation\n      const documentation = await this.generateDocumentation(session, sourceCode, codeAnalysis, format);\n      \n      // Determine output path\n      const outputPath = outputDir\n        ? this.getOutputPath(path, outputDir, format)\n        : this.getInlineDocumentationPath(path);\n      \n      // Write documentation\n      await session.writeFile(outputPath, documentation);\n      results.set(path, outputPath);\n    }\n    \n    return {\n      success: true,\n      data: {\n        documentedFiles: Array.from(results.keys()),\n        outputFiles: Array.from(results.values())\n      }\n    };\n  }\n  \n  private async generateDocumentation(session: CodeSession, sourceCode: string, analysis: any, format: string): Promise<string> {\n    // Generate documentation based on format\n    const prompt = `Generate ${format} documentation for the following code:\\n\\n\\`\\`\\`\\n${sourceCode}\\n\\`\\`\\`\\n\\nCode analysis:\\n${JSON.stringify(analysis, null, 2)}`;\n    \n    return session.generateDocumentation(prompt, { format });\n  }\n  \n  private getOutputPath(sourcePath: string, outputDir: string, format: string): string {\n    // Generate output path based on source path and format\n    const filename = path.basename(sourcePath, path.extname(sourcePath));\n    const extension = format === 'markdown' ? '.md' : '.html';\n    return path.join(outputDir, `${filename}${extension}`);\n  }\n  \n  private getInlineDocumentationPath(sourcePath: string): string {\n    // For inline documentation, return the original path\n    return sourcePath;\n  }\n  \n  validate(input: any): boolean {\n    return Array.isArray(input.paths) && input.paths.length > 0;\n  }\n}\n```",
+        "testStrategy": "1. Test documentation generation for different code samples\n2. Verify documentation format compliance\n3. Test with different output formats\n4. Verify inline documentation updates\n5. Test documentation quality metrics",
+        "priority": "low",
+        "dependencies": [
+          4,
+          6,
+          7
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 17,
+        "title": "Implement CI/CD configuration actions",
+        "description": "Create actions for configuring and updating CI/CD pipelines for projects, enabling automated testing and deployment.",
+        "details": "1. Implement ConfigureCIAction for setting up CI pipelines\n2. Create UpdateCIConfigAction for modifying existing configurations\n3. Implement GenerateCIWorkflowAction for creating workflow definitions\n4. Add support for different CI systems (GitHub Actions, Jenkins, etc.)\n5. Implement CI configuration validation\n\nExample implementation:\n```typescript\nclass ConfigureCIAction implements CodeAction {\n  id = 'configure-ci';\n  name = 'Configure CI';\n  description = 'Sets up CI/CD pipelines for a project';\n  \n  async execute(context: ActionContext, input: ConfigureCIInput): Promise<ActionResult> {\n    const { projectPath, ciSystem = 'github-actions', options = {} } = input;\n    const session = context.getSession();\n    \n    // Analyze project to determine appropriate CI configuration\n    const projectAnalysis = await session.analyzeProjectStructure(projectPath);\n    \n    // Determine project type and language\n    const projectType = this.determineProjectType(projectAnalysis);\n    const language = this.determineLanguage(projectAnalysis);\n    \n    // Generate CI configuration\n    const ciConfig = await this.generateCIConfig(session, {\n      ciSystem,\n      projectType,\n      language,\n      options\n    });\n    \n    // Determine configuration file path\n    const configPath = this.getCIConfigPath(projectPath, ciSystem);\n    \n    // Ensure directory exists\n    const configDir = path.dirname(configPath);\n    if (!(await session.directoryExists(configDir))) {\n      await session.createDirectory(configDir, { recursive: true });\n    }\n    \n    // Write configuration file\n    await session.writeFile(configPath, ciConfig);\n    \n    // Additional setup if needed\n    if (options.setupHooks) {\n      await this.setupCIHooks(session, projectPath, ciSystem);\n    }\n    \n    return {\n      success: true,\n      data: {\n        configPath,\n        ciSystem,\n        projectType,\n        language\n      }\n    };\n  }\n  \n  private determineProjectType(projectAnalysis: any): string {\n    // Determine project type based on analysis\n    // ...\n  }\n  \n  private determineLanguage(projectAnalysis: any): string {\n    // Determine primary language based on analysis\n    // ...\n  }\n  \n  private async generateCIConfig(session: CodeSession, options: any): Promise<string> {\n    // Generate CI configuration based on options\n    const { ciSystem, projectType, language } = options;\n    \n    // Get template for the CI system and project type\n    const template = await this.getCITemplate(ciSystem, projectType, language);\n    \n    // Customize template based on options\n    return this.customizeTemplate(template, options);\n  }\n  \n  private getCIConfigPath(projectPath: string, ciSystem: string): string {\n    // Get appropriate config path based on CI system\n    const ciPaths = {\n      'github-actions': '.github/workflows/ci.yml',\n      'travis': '.travis.yml',\n      'jenkins': 'Jenkinsfile',\n      'gitlab': '.gitlab-ci.yml'\n    };\n    \n    return path.join(projectPath, ciPaths[ciSystem] || ciPaths['github-actions']);\n  }\n  \n  private async setupCIHooks(session: CodeSession, projectPath: string, ciSystem: string): Promise<void> {\n    // Set up additional hooks or configurations for CI\n    // ...\n  }\n  \n  private async getCITemplate(ciSystem: string, projectType: string, language: string): Promise<string> {\n    // Get CI template based on system, project type, and language\n    // ...\n  }\n  \n  private customizeTemplate(template: string, options: any): string {\n    // Customize template based on options\n    // ...\n  }\n  \n  validate(input: any): boolean {\n    return typeof input.projectPath === 'string';\n  }\n}\n```",
+        "testStrategy": "1. Test CI configuration generation for different project types\n2. Verify configuration validity for different CI systems\n3. Test with different language requirements\n4. Verify integration with version control systems\n5. Test configuration updates for existing pipelines",
+        "priority": "low",
+        "dependencies": [
+          4,
+          13
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 18,
+        "title": "Implement RESTful API endpoints",
+        "description": "Create RESTful API endpoints for external integrations with the plugin, enabling programmatic access to code operations.",
+        "details": "1. Design RESTful API endpoints for code operations\n2. Implement authentication and authorization\n3. Create request/response handlers\n4. Add rate limiting and quota management\n5. Implement comprehensive error responses\n6. Add API documentation\n\nExample implementation:\n```typescript\nclass APIController {\n  private actionRegistry: ActionRegistry;\n  private authService: AuthService;\n  \n  constructor(actionRegistry: ActionRegistry, authService: AuthService) {\n    this.actionRegistry = actionRegistry;\n    this.authService = authService;\n  }\n  \n  async handleRequest(req: Request, res: Response): Promise<void> {\n    try {\n      // Authenticate request\n      const authResult = await this.authService.authenticate(req);\n      if (!authResult.authenticated) {\n        res.status(401).json({\n          error: 'Unauthorized',\n          message: authResult.message\n        });\n        return;\n      }\n      \n      // Parse action and parameters\n      const { action, params } = req.body;\n      \n      // Get the action\n      const codeAction = this.actionRegistry.getAction(action);\n      if (!codeAction) {\n        res.status(404).json({\n          error: 'Not Found',\n          message: `Action ${action} not found`\n        });\n        return;\n      }\n      \n      // Validate parameters\n      if (!codeAction.validate(params)) {\n        res.status(400).json({\n          error: 'Bad Request',\n          message: 'Invalid parameters for action'\n        });\n        return;\n      }\n      \n      // Create context\n      const context = this.createContext(req, authResult.user);\n      \n      // Execute action\n      const result = await this.actionRegistry.executeAction(action, context, params);\n      \n      // Return result\n      res.status(200).json(result);\n    } catch (error) {\n      console.error('API error:', error);\n      res.status(500).json({\n        error: 'Internal Server Error',\n        message: error.message\n      });\n    }\n  }\n  \n  private createContext(req: Request, user: User): ActionContext {\n    // Create context for action execution\n    // ...\n  }\n}\n\nfunction setupAPIRoutes(app: Express, controller: APIController): void {\n  // Set up API routes\n  app.post('/api/v1/actions', controller.handleRequest.bind(controller));\n  app.get('/api/v1/actions', (req, res) => {\n    // Return list of available actions\n    // ...\n  });\n  \n  // Add more routes as needed\n}\n```",
+        "testStrategy": "1. Test API endpoints with valid and invalid requests\n2. Verify authentication and authorization\n3. Test rate limiting and quota management\n4. Verify error handling and responses\n5. Test with different action types",
+        "priority": "low",
+        "dependencies": [
+          2,
+          3,
+          5
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 19,
+        "title": "Implement WebSocket support for real-time updates",
+        "description": "Add WebSocket support to enable real-time updates and streaming responses for long-running code operations.",
+        "details": "1. Implement WebSocket server integration\n2. Create message handling for real-time updates\n3. Add support for streaming responses\n4. Implement connection management\n5. Add authentication for WebSocket connections\n\nExample implementation:\n```typescript\nclass WebSocketController {\n  private actionRegistry: ActionRegistry;\n  private authService: AuthService;\n  private connections: Map<string, WebSocket> = new Map();\n  \n  constructor(actionRegistry: ActionRegistry, authService: AuthService) {\n    this.actionRegistry = actionRegistry;\n    this.authService = authService;\n  }\n  \n  handleConnection(ws: WebSocket, req: Request): void {\n    // Authenticate connection\n    this.authService.authenticate(req)\n      .then(authResult => {\n        if (!authResult.authenticated) {\n          ws.close(1008, 'Unauthorized');\n          return;\n        }\n        \n        // Generate connection ID\n        const connectionId = uuidv4();\n        \n        // Store connection\n        this.connections.set(connectionId, ws);\n        \n        // Send connection ID to client\n        ws.send(JSON.stringify({\n          type: 'connection',\n          connectionId\n        }));\n        \n        // Set up message handler\n        ws.on('message', (message: string) => {\n          this.handleMessage(connectionId, message, authResult.user);\n        });\n        \n        // Set up close handler\n        ws.on('close', () => {\n          this.connections.delete(connectionId);\n        });\n      })\n      .catch(error => {\n        console.error('WebSocket authentication error:', error);\n        ws.close(1011, 'Authentication error');\n      });\n  }\n  \n  private async handleMessage(connectionId: string, message: string, user: User): Promise<void> {\n    const ws = this.connections.get(connectionId);\n    if (!ws) return;\n    \n    try {\n      // Parse message\n      const { id, action, params } = JSON.parse(message);\n      \n      // Get the action\n      const codeAction = this.actionRegistry.getAction(action);\n      if (!codeAction) {\n        ws.send(JSON.stringify({\n          id,\n          error: 'Action not found'\n        }));\n        return;\n      }\n      \n      // Validate parameters\n      if (!codeAction.validate(params)) {\n        ws.send(JSON.stringify({\n          id,\n          error: 'Invalid parameters'\n        }));\n        return;\n      }\n      \n      // Create context with streaming capability\n      const context = this.createStreamingContext(connectionId, id, user);\n      \n      // Execute action\n      const result = await this.actionRegistry.executeAction(action, context, params);\n      \n      // Send final result\n      ws.send(JSON.stringify({\n        id,\n        type: 'result',\n        result\n      }));\n    } catch (error) {\n      console.error('WebSocket message handling error:', error);\n      ws.send(JSON.stringify({\n        error: 'Internal error',\n        message: error.message\n      }));\n    }\n  }\n  \n  private createStreamingContext(connectionId: string, messageId: string, user: User): ActionContext {\n    // Create context with streaming capability\n    const ws = this.connections.get(connectionId);\n    \n    const streamingContext = new ActionContext(user);\n    streamingContext.setStreamingCallback((data) => {\n      if (ws && ws.readyState === WebSocket.OPEN) {\n        ws.send(JSON.stringify({\n          id: messageId,\n          type: 'update',\n          data\n        }));\n      }\n    });\n    \n    return streamingContext;\n  }\n}\n\nfunction setupWebSocket(server: Server, controller: WebSocketController): void {\n  const wss = new WebSocketServer({ server });\n  wss.on('connection', (ws, req) => {\n    controller.handleConnection(ws, req);\n  });\n}\n```",
+        "testStrategy": "1. Test WebSocket connections and authentication\n2. Verify real-time updates for long-running operations\n3. Test streaming responses with large data\n4. Verify connection management and cleanup\n5. Test with concurrent connections",
+        "priority": "low",
+        "dependencies": [
+          2,
+          3,
+          5,
+          18
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 20,
+        "title": "Create comprehensive documentation and examples",
+        "description": "Develop comprehensive documentation and example implementations to help developers effectively use the plugin.",
+        "details": "1. Create user documentation:\n   - Installation guide\n   - Configuration options\n   - API reference\n   - Action reference\n   - Best practices\n2. Develop example implementations:\n   - Basic code modification\n   - Project initialization\n   - Code analysis\n   - GitHub integration\n   - CI/CD configuration\n3. Create tutorials for common use cases:\n   - Setting up an autonomous code assistant\n   - Implementing a code review bot\n   - Creating a dependency update agent\n4. Add troubleshooting guide and FAQs\n5. Create API documentation for RESTful endpoints\n\nExample documentation structure:\n```markdown\n# ElizaOS Claude Code Plugin\n\n## Installation\n\n```bash\nnpm install elizaos-claude-code-plugin\n```\n\n## Configuration\n\n```typescript\nimport { ClaudeCodePlugin } from 'elizaos-claude-code-plugin';\n\n// Initialize the plugin\nconst plugin = new ClaudeCodePlugin({\n  apiKey: 'your-claude-api-key',\n  // Additional configuration options\n});\n\n// Register the plugin with ElizaOS\nelizaOS.registerPlugin(plugin);\n```\n\n## Basic Usage\n\n```typescript\n// Example: Analyze code\nawait elizaOS.execute('analyze-code', {\n  path: './src/index.ts',\n  purpose: 'code-review'\n});\n\n// Example: Implement a feature\nawait elizaOS.execute('implement-feature', {\n  specification: 'Add a user authentication endpoint using JWT',\n  projectPath: './my-project'\n});\n```\n\n## Actions Reference\n\n### analyze-code\n\nAnalyzes code for structure, quality, and potential improvements.\n\n**Parameters:**\n- `path` (string): Path to the file or directory to analyze\n- `purpose` (string, optional): Purpose of the analysis (e.g., 'code-review', 'documentation')\n\n**Returns:**\n- Analysis results including suggestions and metrics\n\n### implement-feature\n\nImplements a new feature based on a specification.\n\n**Parameters:**\n- `specification` (string): Description of the feature to implement\n- `projectPath` (string): Path to the project\n- `generateTests` (boolean, optional): Whether to generate tests for the feature\n\n**Returns:**\n- Implementation results including changed files and tests\n```",
+        "testStrategy": "1. Verify documentation accuracy and completeness\n2. Test example implementations to ensure they work as described\n3. Have developers review documentation for clarity and usefulness\n4. Test API documentation against actual endpoints\n5. Verify tutorials can be followed successfully",
+        "priority": "medium",
+        "dependencies": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-06-20T02:18:04.578Z",
+      "updated": "2025-06-20T02:40:53.874Z",
+      "description": "Tasks for master context"
+    }
+  }
+}
