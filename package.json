@@ -1,6 +1,6 @@
 {
-  "name": "@npm-username/plugin-name",
-  "description": "${PLUGINDESCRIPTION}",
+  "name": "@elizaos/plugin-claudecode",
+  "description": "ElizaOS plugin for autonomous codebase modification using Claude Code SDK",
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
@@ -8,19 +8,24 @@
   "types": "dist/index.d.ts",
   "packageType": "plugin",
   "platform": "node",
-  "license": "UNLICENSED",
-  "author": "${GITHUB_USERNAME}",
+  "license": "MIT",
+  "author": "ElizaOS Community",
   "keywords": [
     "plugin",
-    "elizaos"
+    "elizaos",
+    "claude",
+    "code-generation",
+    "ai-coding",
+    "claude-code",
+    "autonomous-coding"
   ],
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/elizaos/plugin-claudecode"
   },
   "homepage": "https://elizaos.ai",
   "bugs": {
-    "url": "https://github.com/${GITHUB_USERNAME}/${PLUGINNAME}/issues"
+    "url": "https://github.com/elizaos/plugin-claudecode/issues"
   },
   "exports": {
     "./package.json": "./package.json",
@@ -40,6 +45,7 @@
   ],
   "dependencies": {
     "@elizaos/core": "latest",
+    "@anthropic-ai/claude-code": "^1.0.30",
     "zod": "3.24.2"
   },
   "peerDependencies": {},
@@ -72,9 +78,20 @@
   "agentConfig": {
     "pluginType": "elizaos:plugin:1.0.0",
     "pluginParameters": {
-      "API_KEY": {
+      "ANTHROPIC_API_KEY": {
         "type": "string",
-        "description": "API key for the service"
+        "description": "Anthropic API key for Claude Code SDK authentication",
+        "required": true
+      },
+      "MAX_TURNS": {
+        "type": "number",
+        "description": "Maximum number of turns for Claude Code operations",
+        "default": 10
+      },
+      "PERMISSION_MODE": {
+        "type": "string",
+        "description": "Permission mode for file operations: 'default', 'acceptEdits', 'bypassPermissions', 'plan'",
+        "default": "acceptEdits"
       }
     }
   },
